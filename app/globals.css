@@ -95,6 +95,22 @@ html {
   width: 100%;
 }
 
+/* Horizontal carousel scrollbar (more subtle than the page bar) */
+.carousel-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.carousel-scroll::-webkit-scrollbar-track {
+  background: rgba(139, 115, 85, 0.08);
+  border-radius: 999px;
+}
+.carousel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(139, 115, 85, 0.4);
+  border-radius: 999px;
+}
+.carousel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 115, 85, 0.7);
+}
+
 /* Placeholder artwork styling */
 .artwork-placeholder {
   display: flex;

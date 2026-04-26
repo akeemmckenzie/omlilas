@@ -34,6 +34,9 @@ export default defineConfig({
             // Artworks
             S.documentTypeListItem("artwork").title("Artworks"),
             S.divider(),
+            // Blog
+            S.documentTypeListItem("blogPost").title("Blog Posts"),
+            S.divider(),
             // Page Content
             S.documentTypeListItem("pageContent").title("Page Content"),
           ]),

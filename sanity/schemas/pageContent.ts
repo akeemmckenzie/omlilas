@@ -14,6 +14,7 @@ export default defineType({
           { title: "Home", value: "home" },
           { title: "Originals", value: "originals" },
           { title: "Prints", value: "prints" },
+          { title: "Blog", value: "blog" },
           { title: "About", value: "about" },
           { title: "Contact", value: "contact" },
         ],

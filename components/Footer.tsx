@@ -26,7 +26,7 @@ export default function Footer({ settings }: FooterProps) {
           </div>
 
           <nav className="flex items-center gap-6">
-            {["Originals", "Prints", "About", "Contact"].map((label) => (
+            {["Originals", "Prints", "Blog", "About", "Contact"].map((label) => (
               <Link
                 key={label}
                 href={`/${label.toLowerCase()}`}

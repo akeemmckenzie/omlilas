@@ -120,3 +120,50 @@ export const originalsByCollectionQuery = groq`
 export const allCollectionSlugsQuery = groq`
   *[_type == "collection"].slug.current
 `;
+
+// Blog
+export const blogPostsQuery = groq`
+  *[_type == "blogPost" && defined(publishedAt) && publishedAt <= now()]
+    | order(publishedAt desc) {
+      _id,
+      title,
+      "slug": slug.current,
+      publishedAt,
+      category,
+      excerpt
+    }
+`;
+
+export const featuredBlogPostsQuery = groq`
+  *[_type == "blogPost"
+    && featured == true
+    && defined(publishedAt)
+    && publishedAt <= now()]
+    | order(publishedAt desc)[0...3] {
+      _id,
+      title,
+      "slug": slug.current,
+      publishedAt,
+      category,
+      excerpt,
+      coverImage
+    }
+`;
+
+export const blogPostBySlugQuery = groq`
+  *[_type == "blogPost" && slug.current == $slug][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    publishedAt,
+    category,
+    excerpt,
+    coverImage,
+    body,
+    seo
+  }
+`;
+
+export const allBlogPostSlugsQuery = groq`
+  *[_type == "blogPost" && defined(publishedAt) && publishedAt <= now()].slug.current
+`;

@@ -11,15 +11,18 @@ interface ArtworkCardProps {
   artwork: SanityArtwork;
   index?: number;
   uniform?: boolean;
+  priceOverride?: number;
 }
 
 export default function ArtworkCard({
   artwork,
   index = 0,
   uniform = false,
+  priceOverride,
 }: ArtworkCardProps) {
   const hasImage = artwork.images && artwork.images.length > 0;
   const slug = artwork.slug?.current || artwork.slug;
+  const displayPrice = priceOverride ?? artwork.price;
 
   return (
     <motion.div
@@ -73,37 +76,26 @@ export default function ArtworkCard({
                   {artwork.title}
                 </p>
                 <p className="text-cream/80 text-xs mt-1">
-                  {formatPrice(artwork.price)}
+                  {artwork.sold ? "Sold" : formatPrice(displayPrice)}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Signed badge for prints */}
-          {artwork.category === "print" && artwork.signedPrice && (
-            <div className="absolute top-6 right-6 sm:top-8 sm:right-8">
-              <span className="inline-block px-3 py-1 bg-accent text-cream text-[10px] tracking-widest uppercase rounded-sm shadow-sm">
-                Signed Available
-              </span>
-            </div>
-          )}
-
-          {/* Card info below image */}
+          {/* Card info below image — uniform: title + price (or Sold) */}
           <div className="mt-4 text-center">
-            <h3 className="font-serif text-sm text-charcoal tracking-wide">
+            <h3 className="font-serif text-sm text-charcoal tracking-wide truncate">
               {artwork.title}
             </h3>
-            <p className="text-xs text-charcoal/50 mt-1">{artwork.medium}</p>
-            {artwork.category === "print" && artwork.signedPrice ? (
-              <p className="text-xs text-charcoal/50 mt-1">
-                From {formatPrice(artwork.price)}
-              </p>
-            ) : null}
-            {artwork.sold && (
-              <span className="inline-block mt-2 text-[10px] tracking-widest uppercase text-accent">
-                Sold
-              </span>
-            )}
+            <p
+              className={`text-xs mt-1 tracking-wide ${
+                artwork.sold
+                  ? "uppercase text-accent"
+                  : "text-charcoal/60"
+              }`}
+            >
+              {artwork.sold ? "Sold" : formatPrice(displayPrice)}
+            </p>
           </div>
         </div>
       </Link>

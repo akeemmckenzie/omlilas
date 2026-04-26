@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPrints, getPageContent } from "@/lib/sanity";
-import ArtworkGrid from "@/components/ArtworkGrid";
+import ArtworkCarousel from "@/components/ArtworkCarousel";
 import PageTransition from "@/components/PageTransition";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,6 +19,10 @@ export default async function PrintsPage() {
     getPageContent("prints"),
   ]);
 
+  const all = prints || [];
+  const signed = all.filter((p) => typeof p.signedPrice === "number");
+  const unsigned = all;
+
   return (
     <PageTransition>
       <section className="py-16 md:py-24">
@@ -32,7 +36,26 @@ export default async function PrintsPage() {
                 "Archival giclée prints on museum-quality paper — signed and numbered by the artist."}
             </p>
           </div>
-          <ArtworkGrid artworks={prints || []} />
+
+          <ArtworkCarousel
+            title="Signed Prints"
+            subtitle="Hand-signed and numbered by the artist."
+            artworks={signed}
+            variant="signed"
+          />
+
+          <ArtworkCarousel
+            title="Unsigned Prints"
+            subtitle="Open and limited editions, archival giclée."
+            artworks={unsigned}
+            variant="unsigned"
+          />
+
+          {all.length === 0 && (
+            <p className="text-center text-charcoal/40 text-sm py-12">
+              No prints to display yet.
+            </p>
+          )}
         </div>
       </section>
     </PageTransition>

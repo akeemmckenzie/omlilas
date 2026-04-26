@@ -11,12 +11,19 @@ import {
   collectionBySlugQuery,
   originalsByCollectionQuery,
   allCollectionSlugsQuery,
+  blogPostsQuery,
+  blogPostBySlugQuery,
+  allBlogPostSlugsQuery,
+  featuredBlogPostsQuery,
 } from "@/sanity/queries";
 import type {
   SanityArtwork,
   SanitySettings,
   SanityPageContent,
   SanityCollection,
+  SanityBlogPostListItem,
+  SanityBlogPost,
+  SanityFeaturedBlogPost,
 } from "@/sanity/types";
 
 const REVALIDATE = 3600;
@@ -99,6 +106,24 @@ export async function getOriginalsByCollection(
 
 export async function getAllCollectionSlugs(): Promise<string[]> {
   return safeFetch<string[]>(allCollectionSlugsQuery, {}, []);
+}
+
+export async function getBlogPosts(): Promise<SanityBlogPostListItem[]> {
+  return safeFetch<SanityBlogPostListItem[]>(blogPostsQuery, {}, []);
+}
+
+export async function getBlogPostBySlug(
+  slug: string,
+): Promise<SanityBlogPost | null> {
+  return safeFetch<SanityBlogPost | null>(blogPostBySlugQuery, { slug }, null);
+}
+
+export async function getAllBlogPostSlugs(): Promise<string[]> {
+  return safeFetch<string[]>(allBlogPostSlugsQuery, {}, []);
+}
+
+export async function getFeaturedBlogPosts(): Promise<SanityFeaturedBlogPost[]> {
+  return safeFetch<SanityFeaturedBlogPost[]>(featuredBlogPostsQuery, {}, []);
 }
 
 export function formatPrice(price: number): string {

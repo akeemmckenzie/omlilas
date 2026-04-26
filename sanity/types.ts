@@ -82,3 +82,28 @@ export interface SanityPageContent {
   featuredWorksHeading?: string;
   seo?: { title?: string; description?: string };
 }
+
+export interface SanityBlogPostListItem {
+  _id: string;
+  title: string;
+  slug: string;
+  publishedAt: string;
+  category?: string;
+  excerpt?: string;
+}
+
+export interface SanityFeaturedBlogPost extends SanityBlogPostListItem {
+  coverImage?: SanityImageSource;
+}
+
+export interface SanityBlogPost {
+  _id: string;
+  title: string;
+  slug: string;
+  publishedAt: string;
+  category?: string;
+  excerpt?: string;
+  coverImage?: SanityImageSource;
+  body?: PortableTextBlock[];
+  seo?: { title?: string; description?: string };
+}
