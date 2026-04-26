@@ -13,10 +13,27 @@ export async function POST(req: NextRequest) {
 
     if (_type === "artwork") {
       revalidatePath("/originals");
+      revalidatePath("/originals/[collection]", "page");
       revalidatePath("/prints");
       revalidatePath("/");
       if (slug?.current) {
         revalidatePath(`/artwork/${slug.current}`);
+      }
+    }
+
+    if (_type === "collection") {
+      revalidatePath("/originals");
+      revalidatePath("/originals/[collection]", "page");
+      if (slug?.current) {
+        revalidatePath(`/originals/${slug.current}`);
+      }
+    }
+
+    if (_type === "blogPost") {
+      revalidatePath("/blog");
+      revalidatePath("/");
+      if (slug?.current) {
+        revalidatePath(`/blog/${slug.current}`);
       }
     }
 
