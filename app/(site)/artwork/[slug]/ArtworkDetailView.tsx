@@ -1,33 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import type { SanityArtwork } from "@/sanity/types";
+import type { ArtworkVariant, SanityArtwork } from "@/sanity/types";
 import { formatPrice } from "@/lib/sanity";
+import {
+  VARIANT_LABELS,
+  availableVariants,
+  defaultVariant,
+  variantEdition,
+  variantImages,
+  variantPrice,
+  variantSoldOut,
+} from "@/lib/artworkVariants";
 import SanityImage from "@/components/SanityImage";
 import ArtworkPlaceholder from "@/components/ArtworkPlaceholder";
 
 interface ArtworkDetailViewProps {
   artwork: SanityArtwork;
+  initialVariant?: ArtworkVariant;
 }
 
-export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
+export default function ArtworkDetailView({
+  artwork,
+  initialVariant,
+}: ArtworkDetailViewProps) {
+  const variants = useMemo(() => availableVariants(artwork), [artwork]);
+  const variant: ArtworkVariant =
+    initialVariant && variants.includes(initialVariant)
+      ? initialVariant
+      : defaultVariant(artwork) || "original";
+
+  const images = useMemo(
+    () => variantImages(artwork, variant),
+    [artwork, variant],
+  );
+  const imageCount = images.length;
+  const hasImages = imageCount > 0;
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
-  const [signed, setSigned] = useState(false);
 
-  const isPrint = artwork.category === "print";
-  const hasSigned = isPrint && !!artwork.signedPrice;
-  const hasImages = artwork.images && artwork.images.length > 0;
-  const imageCount = hasImages ? artwork.images.length : 0;
-
-  const currentPrice =
-    signed && artwork.signedPrice ? artwork.signedPrice : artwork.price;
-  const currentEdition =
-    signed && artwork.signedEdition ? artwork.signedEdition : artwork.edition;
+  const price = variantPrice(artwork, variant);
+  const edition = variantEdition(artwork, variant);
+  const soldOut = variantSoldOut(artwork, variant);
+  const isSignedVariant = variant === "signed";
+  const stockRemaining =
+    isSignedVariant && typeof artwork.signedStock === "number"
+      ? artwork.signedStock
+      : null;
 
   const openFullscreen = (index: number) => {
     setFullscreenIndex(index);
@@ -38,6 +62,8 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
     setFullscreenIndex((i) => (i + 1) % imageCount);
   const prevFullscreen = () =>
     setFullscreenIndex((i) => (i - 1 + imageCount) % imageCount);
+
+  const otherVariants = variants.filter((v) => v !== variant);
 
   return (
     <motion.div
@@ -50,7 +76,6 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
             {/* Left: Image Gallery */}
             <div className="space-y-4">
-              {/* Main image */}
               <button
                 onClick={() => hasImages && openFullscreen(selectedImage)}
                 className="w-full cursor-zoom-in"
@@ -59,7 +84,7 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
                 <div className="gallery-shadow bg-cream-light p-4 sm:p-6">
                   {hasImages ? (
                     <SanityImage
-                      image={artwork.images[selectedImage]}
+                      image={images[selectedImage] ?? images[0]}
                       width={800}
                       height={1000}
                       sizes="(max-width: 768px) 100vw, 50vw"
@@ -75,14 +100,13 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
                 </div>
               </button>
 
-              {/* Thumbnail strip */}
               {imageCount > 1 && (
-                <div className="flex gap-3">
-                  {artwork.images.map((img, i) => (
+                <div className="flex gap-3 flex-wrap">
+                  {images.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
-                      className={`flex-1 transition-all duration-200 ${
+                      className={`flex-1 min-w-[60px] transition-all duration-200 ${
                         selectedImage === i
                           ? "ring-2 ring-accent ring-offset-2 ring-offset-cream"
                           : "opacity-60 hover:opacity-100"
@@ -114,103 +138,89 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
                 <p className="text-xs tracking-[0.2em] uppercase text-charcoal/40 mb-3">
                   {artwork.collection?.title}
                 </p>
-                <h1 className="font-serif text-3xl md:text-4xl text-charcoal tracking-wide mb-4">
+                <h1 className="font-serif text-3xl md:text-4xl text-charcoal tracking-wide mb-2">
                   {artwork.title}
                 </h1>
+                <p className="text-xs tracking-[0.2em] uppercase text-accent mb-5">
+                  {VARIANT_LABELS[variant]}
+                </p>
 
                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-charcoal/50 mb-6">
-                  <span>{artwork.year}</span>
-                  <span>{artwork.medium}</span>
-                  <span>{artwork.dimensions}</span>
-                  {currentEdition && <span>{currentEdition}</span>}
+                  {artwork.year && <span>{artwork.year}</span>}
+                  {artwork.medium && <span>{artwork.medium}</span>}
+                  {artwork.dimensions && <span>{artwork.dimensions}</span>}
+                  {edition && <span>{edition}</span>}
                 </div>
 
-                {/* Signed / Unsigned toggle for prints */}
-                {hasSigned && (
-                  <div className="mb-6">
-                    <div className="inline-flex rounded-sm overflow-hidden border border-charcoal/15">
-                      <button
-                        onClick={() => setSigned(false)}
-                        className={`px-5 py-2.5 text-xs tracking-widest uppercase transition-all duration-200 ${
-                          !signed
-                            ? "bg-charcoal text-cream"
-                            : "bg-transparent text-charcoal/50 hover:text-charcoal"
-                        }`}
-                      >
-                        Unsigned
-                      </button>
-                      <button
-                        onClick={() => setSigned(true)}
-                        className={`px-5 py-2.5 text-xs tracking-widest uppercase transition-all duration-200 relative ${
-                          signed
-                            ? "bg-accent text-cream"
-                            : "bg-transparent text-charcoal/50 hover:text-charcoal"
-                        }`}
-                      >
-                        Signed
-                        <span
-                          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-accent/80 animate-pulse"
-                          style={{
-                            display: signed ? "none" : "inline-block",
-                          }}
-                        />
-                      </button>
-                    </div>
+                {/* Price / sold-out */}
+                {soldOut ? (
+                  <p className="text-2xl text-accent font-serif mb-6 tracking-wide uppercase">
+                    {variant === "original" ? "Sold" : "Sold Out"}
+                  </p>
+                ) : typeof price === "number" ? (
+                  <p className="text-2xl text-charcoal font-serif mb-6">
+                    {formatPrice(price)}
+                  </p>
+                ) : null}
+
+                {/* Stock indicator for signed prints */}
+                {isSignedVariant &&
+                  !soldOut &&
+                  typeof stockRemaining === "number" && (
+                    <p className="text-xs tracking-[0.15em] uppercase text-charcoal/60 mb-6">
+                      {stockRemaining === 1
+                        ? "Only 1 remaining"
+                        : `${stockRemaining} remaining`}
+                    </p>
+                  )}
+
+                {/* Signed-edition note */}
+                {isSignedVariant && artwork.signedDescription && (
+                  <div className="mb-6 p-4 bg-accent/8 border border-accent/20 rounded-sm">
+                    <p className="text-xs tracking-[0.15em] uppercase text-accent font-medium mb-2">
+                      Artist Signed Edition
+                    </p>
+                    <p className="text-sm text-charcoal/60 leading-relaxed">
+                      {artwork.signedDescription}
+                    </p>
                   </div>
                 )}
 
-                {/* Price */}
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={signed ? "signed" : "unsigned"}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-2xl text-charcoal font-serif mb-6"
-                  >
-                    {formatPrice(currentPrice)}
-                  </motion.p>
-                </AnimatePresence>
-
-                {/* Signed highlight banner */}
-                <AnimatePresence>
-                  {signed && hasSigned && artwork.signedDescription && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mb-6 p-4 bg-accent/8 border border-accent/20 rounded-sm">
-                        <p className="text-xs tracking-[0.15em] uppercase text-accent font-medium mb-2">
-                          Artist Signed Edition
-                        </p>
-                        <p className="text-sm text-charcoal/60 leading-relaxed">
-                          {artwork.signedDescription}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 {/* Description */}
-                {(!signed || !artwork.signedDescription) && (
+                {artwork.description && (
                   <p className="text-sm text-charcoal/60 leading-relaxed mb-8">
                     {artwork.description}
                   </p>
                 )}
-                {signed && artwork.signedDescription && <div className="mb-2" />}
 
                 <div className="flex flex-wrap gap-4">
                   <Link
                     href="/contact"
                     className="px-10 py-3.5 bg-charcoal text-cream text-xs tracking-widest uppercase hover:bg-charcoal/85 hover:scale-[1.02] transition-all duration-300"
                   >
-                    Inquire
+                    {soldOut ? "Inquire" : "Inquire"}
                   </Link>
                 </div>
+
+                {/* Cross-link to other variants of the same artwork */}
+                {otherVariants.length > 0 && (
+                  <div className="mt-10 pt-6 border-t border-charcoal/10">
+                    <p className="text-[11px] tracking-[0.2em] uppercase text-charcoal/45 mb-3">
+                      Also available as
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {otherVariants.map((v) => (
+                        <Link
+                          key={v}
+                          href={`/artwork/${artwork.slug.current}?v=${v}`}
+                          className="text-xs tracking-widest uppercase px-4 py-2 border border-charcoal/15 text-charcoal/70 hover:text-charcoal hover:border-charcoal/40 transition-colors"
+                        >
+                          {VARIANT_LABELS[v]}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>
@@ -273,7 +283,7 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
                   transition={{ duration: 0.2 }}
                 >
                   <SanityImage
-                    image={artwork.images[fullscreenIndex]}
+                    image={images[fullscreenIndex]}
                     width={1200}
                     height={1500}
                     sizes="90vw"
@@ -284,7 +294,7 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
 
               {imageCount > 1 && (
                 <div className="flex justify-center gap-2 mt-4">
-                  {artwork.images.map((_, i) => (
+                  {images.map((_, i) => (
                     <button
                       key={i}
                       onClick={(e) => {

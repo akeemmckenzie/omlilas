@@ -59,7 +59,11 @@ export default async function CollectionPage({ params }: Props) {
             )}
           </div>
 
-          <ArtworkGrid artworks={artworks || []} columns={3} />
+          <ArtworkGrid
+            artworks={artworks || []}
+            columns={3}
+            variant="original"
+          />
         </div>
       </section>
     </PageTransition>

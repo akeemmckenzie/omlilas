@@ -3,21 +3,21 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { SanityArtwork } from "@/sanity/types";
+import type { ArtworkVariant, SanityArtwork } from "@/sanity/types";
 import ArtworkCard from "./ArtworkCard";
 
 interface ArtworkCarouselProps {
   title: string;
   subtitle?: string;
   artworks: SanityArtwork[];
-  variant?: "signed" | "unsigned";
+  variant: ArtworkVariant;
 }
 
 export default function ArtworkCarousel({
   title,
   subtitle,
   artworks,
-  variant = "unsigned",
+  variant,
 }: ArtworkCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -81,9 +81,7 @@ export default function ArtworkCarousel({
               artwork={artwork}
               index={i}
               uniform
-              priceOverride={
-                variant === "signed" ? artwork.signedPrice : artwork.price
-              }
+              variant={variant}
             />
           </div>
         ))}

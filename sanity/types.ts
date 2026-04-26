@@ -32,24 +32,38 @@ export interface SanityCollection {
   artworkCount?: number;
 }
 
+export type ArtworkVariant = "original" | "signed" | "unsigned";
+
 export interface SanityArtwork {
   _id: string;
   _type: "artwork";
   title: string;
   slug: { current: string };
-  category: "original" | "print";
   collection?: SanityCollectionRef;
-  medium: string;
-  dimensions: string;
-  year: number;
-  description: string;
-  featured: boolean;
-  sold: boolean;
-  price: number;
-  edition?: string;
+  medium?: string;
+  dimensions?: string;
+  year?: number;
+  description?: string;
+  featured?: boolean;
+
+  // Original variant
+  hasOriginal?: boolean;
+  originalPrice?: number;
+  originalSold?: boolean;
+
+  // Unsigned print variant
+  hasUnsignedPrint?: boolean;
+  unsignedPrice?: number;
+  unsignedEdition?: string;
+
+  // Signed print variant
+  hasSignedPrint?: boolean;
   signedPrice?: number;
   signedEdition?: string;
+  signedStock?: number;
   signedDescription?: string;
+  signedImages?: SanityArtworkImage[];
+
   images: SanityArtworkImage[];
   seo?: { title?: string; description?: string };
 }

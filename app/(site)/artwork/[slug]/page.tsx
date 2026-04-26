@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getArtworkBySlug, getAllArtworkSlugs } from "@/lib/sanity";
+import { parseVariantParam } from "@/lib/artworkVariants";
 import ArtworkDetailView from "./ArtworkDetailView";
 
 interface Props {
   params: { slug: string };
+  searchParams: { v?: string };
 }
 
 export async function generateStaticParams() {
@@ -26,9 +28,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ArtworkPage({ params }: Props) {
+export default async function ArtworkPage({ params, searchParams }: Props) {
   const artwork = await getArtworkBySlug(params.slug);
   if (!artwork) notFound();
 
-  return <ArtworkDetailView artwork={artwork} />;
+  const initialVariant = parseVariantParam(searchParams?.v);
+
+  return (
+    <ArtworkDetailView artwork={artwork} initialVariant={initialVariant} />
+  );
 }

@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import type { SanityArtwork } from "@/sanity/types";
+import type { ArtworkVariant, SanityArtwork } from "@/sanity/types";
 import { formatPrice } from "@/lib/sanity";
+import {
+  defaultVariant,
+  variantPrice,
+  variantSoldOut,
+  variantSoldLabel,
+} from "@/lib/artworkVariants";
 import SanityImage from "./SanityImage";
 import ArtworkPlaceholder from "./ArtworkPlaceholder";
 
@@ -11,18 +17,36 @@ interface ArtworkCardProps {
   artwork: SanityArtwork;
   index?: number;
   uniform?: boolean;
-  priceOverride?: number;
+  /** Which variant this card represents. Drives price, sold state, and the link. */
+  variant?: ArtworkVariant;
 }
 
 export default function ArtworkCard({
   artwork,
   index = 0,
   uniform = false,
-  priceOverride,
+  variant,
 }: ArtworkCardProps) {
   const hasImage = artwork.images && artwork.images.length > 0;
-  const slug = artwork.slug?.current || artwork.slug;
-  const displayPrice = priceOverride ?? artwork.price;
+  const slug =
+    typeof artwork.slug === "string"
+      ? artwork.slug
+      : artwork.slug?.current;
+
+  const effectiveVariant = variant ?? defaultVariant(artwork);
+  const price = effectiveVariant
+    ? variantPrice(artwork, effectiveVariant)
+    : undefined;
+  const soldOut = effectiveVariant
+    ? variantSoldOut(artwork, effectiveVariant)
+    : false;
+  const soldLabel = effectiveVariant
+    ? variantSoldLabel(artwork, effectiveVariant)
+    : "Sold";
+
+  const href = effectiveVariant
+    ? `/artwork/${slug}?v=${effectiveVariant}`
+    : `/artwork/${slug}`;
 
   return (
     <motion.div
@@ -31,7 +55,7 @@ export default function ArtworkCard({
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
     >
-      <Link href={`/artwork/${slug}`} className="group block">
+      <Link href={href} className="group block">
         <div className="relative bg-cream-light rounded-sm gallery-shadow sunlight-effect transition-shadow duration-500 p-4 sm:p-6">
           {/* Artwork image area */}
           <div
@@ -50,7 +74,9 @@ export default function ArtworkCard({
                     image={artwork.images[0]}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover"
+                    className={`object-cover ${
+                      soldOut ? "opacity-60 grayscale-[0.2]" : ""
+                    }`}
                   />
                 ) : (
                   <SanityImage
@@ -58,7 +84,9 @@ export default function ArtworkCard({
                     width={600}
                     height={750}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="w-full h-auto"
+                    className={`w-full h-auto ${
+                      soldOut ? "opacity-60 grayscale-[0.2]" : ""
+                    }`}
                   />
                 )
               ) : (
@@ -76,7 +104,11 @@ export default function ArtworkCard({
                   {artwork.title}
                 </p>
                 <p className="text-cream/80 text-xs mt-1">
-                  {artwork.sold ? "Sold" : formatPrice(displayPrice)}
+                  {soldOut
+                    ? soldLabel
+                    : typeof price === "number"
+                      ? formatPrice(price)
+                      : ""}
                 </p>
               </div>
             </div>
@@ -89,12 +121,14 @@ export default function ArtworkCard({
             </h3>
             <p
               className={`text-xs mt-1 tracking-wide ${
-                artwork.sold
-                  ? "uppercase text-accent"
-                  : "text-charcoal/60"
+                soldOut ? "uppercase text-accent" : "text-charcoal/60"
               }`}
             >
-              {artwork.sold ? "Sold" : formatPrice(displayPrice)}
+              {soldOut
+                ? soldLabel
+                : typeof price === "number"
+                  ? formatPrice(price)
+                  : ""}
             </p>
           </div>
         </div>

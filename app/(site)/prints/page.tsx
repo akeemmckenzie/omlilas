@@ -20,8 +20,8 @@ export default async function PrintsPage() {
   ]);
 
   const all = prints || [];
-  const signed = all.filter((p) => typeof p.signedPrice === "number");
-  const unsigned = all;
+  const signed = all.filter((p) => !!p.hasSignedPrint);
+  const unsigned = all.filter((p) => !!p.hasUnsignedPrint);
 
   return (
     <PageTransition>
@@ -39,14 +39,14 @@ export default async function PrintsPage() {
 
           <ArtworkCarousel
             title="Signed Prints"
-            subtitle="Hand-signed and numbered by the artist."
+            subtitle="Hand-signed and numbered. Limited stock — once they're gone, they're gone."
             artworks={signed}
             variant="signed"
           />
 
           <ArtworkCarousel
             title="Unsigned Prints"
-            subtitle="Open and limited editions, archival giclée."
+            subtitle="Open editions, archival giclée — always available."
             artworks={unsigned}
             variant="unsigned"
           />

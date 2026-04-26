@@ -1,16 +1,18 @@
 "use client";
 
-import type { SanityArtwork } from "@/sanity/types";
+import type { ArtworkVariant, SanityArtwork } from "@/sanity/types";
 import ArtworkCard from "./ArtworkCard";
 
 interface ArtworkGridProps {
   artworks: SanityArtwork[];
   columns?: 2 | 3;
+  variant?: ArtworkVariant;
 }
 
 export default function ArtworkGrid({
   artworks,
   columns = 2,
+  variant,
 }: ArtworkGridProps) {
   if (!artworks || artworks.length === 0) {
     return (
@@ -33,6 +35,7 @@ export default function ArtworkGrid({
           artwork={artwork}
           index={i}
           uniform={columns === 3}
+          variant={variant}
         />
       ))}
     </div>

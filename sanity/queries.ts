@@ -9,6 +9,35 @@ const collectionProjection = `
   }
 `;
 
+const variantFieldsProjection = `
+  hasOriginal,
+  originalPrice,
+  originalSold,
+  hasUnsignedPrint,
+  unsignedPrice,
+  unsignedEdition,
+  hasSignedPrint,
+  signedPrice,
+  signedEdition,
+  signedStock,
+  signedDescription,
+  signedImages[] { image, alt, caption }
+`;
+
+const artworkListProjection = `
+  _id,
+  title,
+  slug,
+  ${collectionProjection},
+  medium,
+  dimensions,
+  year,
+  description,
+  featured,
+  ${variantFieldsProjection},
+  images[] { image, alt, caption }
+`;
+
 export const siteSettingsQuery = groq`
   *[_type == "siteSettings"][0] {
     siteName,
@@ -47,37 +76,30 @@ export const pageContentQuery = groq`
   }
 `;
 
+// Originals: artworks tagged as "Available as Original"
 export const originalsQuery = groq`
-  *[_type == "artwork" && category == "original"] | order(year desc) {
-    _id, title, slug, category, ${collectionProjection}, medium, dimensions, year,
-    description, featured, sold, price,
-    images[] { image, alt, caption }
+  *[_type == "artwork" && hasOriginal == true] | order(year desc) {
+    ${artworkListProjection}
   }
 `;
 
+// All prints (signed or unsigned). The /prints page splits client-side.
 export const printsQuery = groq`
-  *[_type == "artwork" && category == "print"] | order(year desc) {
-    _id, title, slug, category, ${collectionProjection}, medium, dimensions, year,
-    description, featured, sold, price, edition,
-    signedPrice, signedEdition, signedDescription,
-    images[] { image, alt, caption }
-  }
+  *[_type == "artwork" && (hasSignedPrint == true || hasUnsignedPrint == true)]
+    | order(year desc) {
+      ${artworkListProjection}
+    }
 `;
 
 export const featuredArtworksQuery = groq`
   *[_type == "artwork" && featured == true] | order(year desc) {
-    _id, title, slug, category, ${collectionProjection}, medium, price, signedPrice,
-    sold, featured,
-    images[] { image, alt, caption }
+    ${artworkListProjection}
   }
 `;
 
 export const artworkBySlugQuery = groq`
   *[_type == "artwork" && slug.current == $slug][0] {
-    _id, title, slug, category, ${collectionProjection}, medium, dimensions, year,
-    description, featured, sold, price, edition,
-    signedPrice, signedEdition, signedDescription,
-    images[] { image, alt, caption },
+    ${artworkListProjection},
     seo
   }
 `;
@@ -94,7 +116,7 @@ export const collectionsQuery = groq`
     description,
     coverImage,
     order,
-    "artworkCount": count(*[_type == "artwork" && category == "original" && references(^._id)])
+    "artworkCount": count(*[_type == "artwork" && hasOriginal == true && references(^._id)])
   }
 `;
 
@@ -109,11 +131,9 @@ export const collectionBySlugQuery = groq`
 `;
 
 export const originalsByCollectionQuery = groq`
-  *[_type == "artwork" && category == "original" && collection->slug.current == $slug]
+  *[_type == "artwork" && hasOriginal == true && collection->slug.current == $slug]
     | order(year desc) {
-      _id, title, slug, category, ${collectionProjection}, medium, dimensions, year,
-      description, featured, sold, price,
-      images[] { image, alt, caption }
+      ${artworkListProjection}
     }
 `;
 
