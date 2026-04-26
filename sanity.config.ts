@@ -29,6 +29,8 @@ export default defineConfig({
                   .documentId("siteSettings"),
               ),
             S.divider(),
+            // Collections (series)
+            S.documentTypeListItem("collection").title("Collections"),
             // Artworks
             S.documentTypeListItem("artwork").title("Artworks"),
             S.divider(),
