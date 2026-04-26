@@ -43,9 +43,12 @@ export default defineType({
     }),
     defineField({
       name: "collection",
-      title: "Collection",
-      type: "string",
+      title: "Collection / Series",
+      type: "reference",
+      to: [{ type: "collection" }],
       group: "details",
+      description:
+        "The series this artwork belongs to. Manage series under Collection in the studio.",
     }),
     defineField({
       name: "medium",
@@ -158,7 +161,7 @@ export default defineType({
   preview: {
     select: {
       title: "title",
-      subtitle: "collection",
+      subtitle: "collection.title",
       media: "images.0.image",
     },
   },

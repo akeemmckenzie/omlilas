@@ -7,11 +7,16 @@ import {
   allArtworkSlugsQuery,
   siteSettingsQuery,
   pageContentQuery,
+  collectionsQuery,
+  collectionBySlugQuery,
+  originalsByCollectionQuery,
+  allCollectionSlugsQuery,
 } from "@/sanity/queries";
 import type {
   SanityArtwork,
   SanitySettings,
   SanityPageContent,
+  SanityCollection,
 } from "@/sanity/types";
 
 const REVALIDATE = 3600;
@@ -70,6 +75,30 @@ export async function getArtworkBySlug(
 
 export async function getAllArtworkSlugs(): Promise<string[]> {
   return safeFetch<string[]>(allArtworkSlugsQuery, {}, []);
+}
+
+export async function getCollections(): Promise<SanityCollection[]> {
+  return safeFetch<SanityCollection[]>(collectionsQuery, {}, []);
+}
+
+export async function getCollectionBySlug(
+  slug: string,
+): Promise<SanityCollection | null> {
+  return safeFetch<SanityCollection | null>(
+    collectionBySlugQuery,
+    { slug },
+    null,
+  );
+}
+
+export async function getOriginalsByCollection(
+  slug: string,
+): Promise<SanityArtwork[]> {
+  return safeFetch<SanityArtwork[]>(originalsByCollectionQuery, { slug }, []);
+}
+
+export async function getAllCollectionSlugs(): Promise<string[]> {
+  return safeFetch<string[]>(allCollectionSlugsQuery, {}, []);
 }
 
 export function formatPrice(price: number): string {

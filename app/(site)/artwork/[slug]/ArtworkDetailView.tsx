@@ -112,7 +112,7 @@ export default function ArtworkDetailView({ artwork }: ArtworkDetailViewProps) {
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
                 <p className="text-xs tracking-[0.2em] uppercase text-charcoal/40 mb-3">
-                  {artwork.collection}
+                  {artwork.collection?.title}
                 </p>
                 <h1 className="font-serif text-3xl md:text-4xl text-charcoal tracking-wide mb-4">
                   {artwork.title}

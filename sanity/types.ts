@@ -8,13 +8,37 @@ export interface SanityArtworkImage {
   caption?: string;
 }
 
+export interface SanityHomeTile {
+  image: SanityImageSource;
+  title?: string;
+  text?: string;
+  link?: string;
+}
+
+export interface SanityCollectionRef {
+  _id: string;
+  title: string;
+  slug: string;
+  description?: string;
+}
+
+export interface SanityCollection {
+  _id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  coverImage?: SanityImageSource;
+  order?: number;
+  artworkCount?: number;
+}
+
 export interface SanityArtwork {
   _id: string;
   _type: "artwork";
   title: string;
   slug: { current: string };
   category: "original" | "print";
-  collection: string;
+  collection?: SanityCollectionRef;
   medium: string;
   dimensions: string;
   year: number;
@@ -43,6 +67,8 @@ export interface SanitySettings {
   artistQuote: string;
   artistPortrait?: SanityImageSource;
   quoteBannerBackground?: SanityImageSource;
+  homeFeatureTilesHeading?: string;
+  homeFeatureTiles?: SanityHomeTile[];
   socialInstagram: string;
   socialYoutube: string;
   footerCopyright: string;

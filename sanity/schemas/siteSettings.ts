@@ -95,6 +95,60 @@ export default defineType({
       options: { hotspot: true },
       description: "Optional background image for the quote banner.",
     }),
+    // Home: 4 feature tiles
+    defineField({
+      name: "homeFeatureTilesHeading",
+      title: "Home Feature Tiles Heading",
+      type: "string",
+      group: "hero",
+      description: "Optional heading shown above the 4 home tiles.",
+    }),
+    defineField({
+      name: "homeFeatureTiles",
+      title: "Home Feature Tiles",
+      type: "array",
+      group: "hero",
+      description:
+        "Up to 4 clickable tiles shown on the home page between the hero and Selected Works.",
+      validation: (Rule) => Rule.max(4),
+      of: [
+        {
+          type: "object",
+          name: "homeTile",
+          title: "Tile",
+          fields: [
+            defineField({
+              name: "image",
+              title: "Image",
+              type: "image",
+              options: { hotspot: true },
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "title",
+              title: "Title",
+              type: "string",
+            }),
+            defineField({
+              name: "text",
+              title: "Text",
+              type: "text",
+              rows: 3,
+            }),
+            defineField({
+              name: "link",
+              title: "Link",
+              type: "string",
+              description:
+                "Optional URL or path (e.g. /originals or /artwork/some-slug).",
+            }),
+          ],
+          preview: {
+            select: { title: "title", subtitle: "link", media: "image" },
+          },
+        },
+      ],
+    }),
     // Social & Footer
     defineField({
       name: "socialInstagram",

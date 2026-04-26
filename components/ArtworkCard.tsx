@@ -10,9 +10,14 @@ import ArtworkPlaceholder from "./ArtworkPlaceholder";
 interface ArtworkCardProps {
   artwork: SanityArtwork;
   index?: number;
+  uniform?: boolean;
 }
 
-export default function ArtworkCard({ artwork, index = 0 }: ArtworkCardProps) {
+export default function ArtworkCard({
+  artwork,
+  index = 0,
+  uniform = false,
+}: ArtworkCardProps) {
   const hasImage = artwork.images && artwork.images.length > 0;
   const slug = artwork.slug?.current || artwork.slug;
 
@@ -26,19 +31,33 @@ export default function ArtworkCard({ artwork, index = 0 }: ArtworkCardProps) {
       <Link href={`/artwork/${slug}`} className="group block">
         <div className="relative bg-cream-light rounded-sm gallery-shadow sunlight-effect transition-shadow duration-500 p-4 sm:p-6">
           {/* Artwork image area */}
-          <div className="relative overflow-hidden">
+          <div
+            className={`relative overflow-hidden ${
+              uniform ? "aspect-[3/4] bg-cream" : ""
+            }`}
+          >
             <motion.div
               whileHover={{ scale: 1.03 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
+              className={uniform ? "absolute inset-0" : ""}
             >
               {hasImage ? (
-                <SanityImage
-                  image={artwork.images[0]}
-                  width={600}
-                  height={750}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="w-full h-auto"
-                />
+                uniform ? (
+                  <SanityImage
+                    image={artwork.images[0]}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <SanityImage
+                    image={artwork.images[0]}
+                    width={600}
+                    height={750}
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="w-full h-auto"
+                  />
+                )
               ) : (
                 <ArtworkPlaceholder
                   colors={["#8B7355", "#A08B6D", "#C4A882"]}

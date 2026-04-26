@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { getOriginals, getPageContent } from "@/lib/sanity";
-import ArtworkGrid from "@/components/ArtworkGrid";
+import { getCollections, getPageContent } from "@/lib/sanity";
+import CollectionGrid from "@/components/CollectionGrid";
 import PageTransition from "@/components/PageTransition";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -9,13 +9,13 @@ export async function generateMetadata(): Promise<Metadata> {
     title: page?.seo?.title || "Original Paintings",
     description:
       page?.seo?.description ||
-      "Browse original paintings by OMLILAS. One-of-a-kind works in oil, acrylic, and mixed media.",
+      "Browse original paintings by OMLILAS, organized by series.",
   };
 }
 
 export default async function OriginalsPage() {
-  const [originals, page] = await Promise.all([
-    getOriginals(),
+  const [collections, page] = await Promise.all([
+    getCollections(),
     getPageContent("originals"),
   ]);
 
@@ -29,10 +29,10 @@ export default async function OriginalsPage() {
             </h1>
             <p className="text-sm text-charcoal/50 mt-3 max-w-md mx-auto">
               {page?.subtitle ||
-                "One-of-a-kind paintings — each piece is an original work created with intention and care."}
+                "Explore the originals by series. Each collection brings together pieces created with a shared intention."}
             </p>
           </div>
-          <ArtworkGrid artworks={originals || []} />
+          <CollectionGrid collections={collections || []} />
         </div>
       </section>
     </PageTransition>
