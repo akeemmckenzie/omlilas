@@ -9,8 +9,16 @@ export interface CartItem {
   quantity: number;
   edition?: string;
   imageUrl?: string;
+  sizeKey?: string;
+  sizeLabel?: string;
 }
 
-export function cartLineKey(artworkId: string, variant: CartVariant): string {
-  return `${artworkId}:${variant}`;
+export function cartLineKey(
+  artworkId: string,
+  variant: CartVariant,
+  sizeKey?: string,
+): string {
+  return sizeKey
+    ? `${artworkId}:${variant}:${sizeKey}`
+    : `${artworkId}:${variant}`;
 }

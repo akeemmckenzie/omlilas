@@ -20,11 +20,16 @@ interface CartContextValue {
   openCart: () => void;
   closeCart: () => void;
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (artworkId: string, variant: CartVariant) => void;
+  removeItem: (
+    artworkId: string,
+    variant: CartVariant,
+    sizeKey?: string,
+  ) => void;
   updateQuantity: (
     artworkId: string,
     variant: CartVariant,
     quantity: number,
+    sizeKey?: string,
   ) => void;
   clear: () => void;
 }
@@ -74,9 +79,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback(
     (item: Omit<CartItem, "quantity">, quantity = 1) => {
       setItems((prev) => {
-        const key = cartLineKey(item.artworkId, item.variant);
+        const key = cartLineKey(item.artworkId, item.variant, item.sizeKey);
         const idx = prev.findIndex(
-          (i) => cartLineKey(i.artworkId, i.variant) === key,
+          (i) => cartLineKey(i.artworkId, i.variant, i.sizeKey) === key,
         );
         if (idx === -1) {
           return [...prev, { ...item, quantity }];
@@ -91,10 +96,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const removeItem = useCallback(
-    (artworkId: string, variant: CartVariant) => {
+    (artworkId: string, variant: CartVariant, sizeKey?: string) => {
       setItems((prev) =>
         prev.filter(
-          (i) => cartLineKey(i.artworkId, i.variant) !== cartLineKey(artworkId, variant),
+          (i) =>
+            cartLineKey(i.artworkId, i.variant, i.sizeKey) !==
+            cartLineKey(artworkId, variant, sizeKey),
         ),
       );
     },
@@ -102,17 +109,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateQuantity = useCallback(
-    (artworkId: string, variant: CartVariant, quantity: number) => {
+    (
+      artworkId: string,
+      variant: CartVariant,
+      quantity: number,
+      sizeKey?: string,
+    ) => {
       setItems((prev) => {
         if (quantity <= 0) {
           return prev.filter(
             (i) =>
-              cartLineKey(i.artworkId, i.variant) !==
-              cartLineKey(artworkId, variant),
+              cartLineKey(i.artworkId, i.variant, i.sizeKey) !==
+              cartLineKey(artworkId, variant, sizeKey),
           );
         }
         return prev.map((i) =>
-          cartLineKey(i.artworkId, i.variant) === cartLineKey(artworkId, variant)
+          cartLineKey(i.artworkId, i.variant, i.sizeKey) ===
+          cartLineKey(artworkId, variant, sizeKey)
             ? { ...i, quantity }
             : i,
         );

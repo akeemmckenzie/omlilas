@@ -13,6 +13,8 @@ interface OrderItemMetadata {
   quantity: number;
   title: string;
   unitPrice: number;
+  sizeKey?: string;
+  sizeLabel?: string;
 }
 
 function shortOrderNumber(id: string): string {
@@ -88,14 +90,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     items = [];
   }
 
-  // Decrement signed stock for each signed-print line, atomically per artwork.
+  // Decrement signed stock for each signed-print line.
   for (const it of items) {
     if (it.variant !== "signed") continue;
     try {
-      await writeClient
-        .patch(it.artworkId)
-        .dec({ signedStock: it.quantity })
-        .commit();
+      if (it.sizeKey) {
+        // Per-size stock: decrement `signedSizes[_key=="…"].stock` by qty.
+        await writeClient
+          .patch(it.artworkId)
+          .dec({ [`signedSizes[_key=="${it.sizeKey}"].stock`]: it.quantity })
+          .commit();
+      } else {
+        await writeClient
+          .patch(it.artworkId)
+          .dec({ signedStock: it.quantity })
+          .commit();
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(
@@ -145,10 +155,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       : undefined,
     items: items.map((it) => ({
       _type: "orderItem",
-      _key: `${it.artworkId}-${it.variant}`,
+      _key: `${it.artworkId}-${it.variant}-${it.sizeKey ?? "default"}`,
       artwork: { _type: "reference", _ref: it.artworkId },
       title: it.title,
       variant: it.variant,
+      sizeKey: it.sizeKey,
+      sizeLabel: it.sizeLabel,
       quantity: it.quantity,
       unitPrice: it.unitPrice,
     })),

@@ -34,6 +34,19 @@ export interface SanityCollection {
 
 export type ArtworkVariant = "original" | "signed" | "unsigned";
 
+export interface SanitySignedSize {
+  _key: string;
+  label: string;
+  price: number;
+  stock: number;
+}
+
+export interface SanityUnsignedSize {
+  _key: string;
+  label: string;
+  price: number;
+}
+
 export interface SanityArtwork {
   _id: string;
   _type: "artwork";
@@ -55,6 +68,7 @@ export interface SanityArtwork {
   hasUnsignedPrint?: boolean;
   unsignedPrice?: number;
   unsignedEdition?: string;
+  unsignedSizes?: SanityUnsignedSize[];
 
   // Signed print variant
   hasSignedPrint?: boolean;
@@ -63,6 +77,7 @@ export interface SanityArtwork {
   signedStock?: number;
   signedDescription?: string;
   signedImages?: SanityArtworkImage[];
+  signedSizes?: SanitySignedSize[];
 
   images: SanityArtworkImage[];
   seo?: { title?: string; description?: string };
@@ -94,6 +109,8 @@ export interface SanityOrderItem {
   artworkId?: string;
   title: string;
   variant: "signed" | "unsigned";
+  sizeLabel?: string;
+  sizeKey?: string;
   quantity: number;
   unitPrice: number;
 }

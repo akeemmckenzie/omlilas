@@ -42,6 +42,7 @@ export default function CartDrawer() {
             artworkId: i.artworkId,
             variant: i.variant,
             quantity: i.quantity,
+            sizeKey: i.sizeKey,
           })),
         }),
       });
@@ -109,7 +110,7 @@ export default function CartDrawer() {
                 <ul className="divide-y divide-charcoal/10">
                   {items.map((item) => (
                     <li
-                      key={`${item.artworkId}:${item.variant}`}
+                      key={`${item.artworkId}:${item.variant}:${item.sizeKey ?? ""}`}
                       className="px-6 py-5 flex gap-4"
                     >
                       <div className="relative w-20 h-24 bg-cream-light flex-shrink-0 overflow-hidden">
@@ -133,6 +134,7 @@ export default function CartDrawer() {
                         </Link>
                         <p className="text-[11px] tracking-[0.15em] uppercase text-charcoal/50 mt-1">
                           {VARIANT_LABELS[item.variant]}
+                          {item.sizeLabel ? ` · ${item.sizeLabel}` : ""}
                         </p>
                         {item.edition && (
                           <p className="text-xs text-charcoal/50 mt-0.5">
@@ -147,6 +149,7 @@ export default function CartDrawer() {
                                   item.artworkId,
                                   item.variant,
                                   item.quantity - 1,
+                                  item.sizeKey,
                                 )
                               }
                               className="w-8 h-8 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors"
@@ -163,6 +166,7 @@ export default function CartDrawer() {
                                   item.artworkId,
                                   item.variant,
                                   item.quantity + 1,
+                                  item.sizeKey,
                                 )
                               }
                               className="w-8 h-8 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors"
@@ -177,7 +181,9 @@ export default function CartDrawer() {
                         </div>
                       </div>
                       <button
-                        onClick={() => removeItem(item.artworkId, item.variant)}
+                        onClick={() =>
+                          removeItem(item.artworkId, item.variant, item.sizeKey)
+                        }
                         className="text-charcoal/40 hover:text-charcoal transition-colors self-start"
                         aria-label={`Remove ${item.title}`}
                       >

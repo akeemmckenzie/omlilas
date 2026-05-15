@@ -9,12 +9,17 @@ import { formatPrice } from "@/lib/sanity";
 import {
   VARIANT_LABELS,
   availableVariants,
+  defaultSizeKey,
   defaultVariant,
+  findSize,
+  hasSizes,
   variantEdition,
   variantImages,
   variantPrice,
+  variantSizes,
   variantSoldOut,
 } from "@/lib/artworkVariants";
+import type { SanitySignedSize, SanityUnsignedSize } from "@/sanity/types";
 import SanityImage from "@/components/SanityImage";
 import ArtworkPlaceholder from "@/components/ArtworkPlaceholder";
 import { useCart } from "@/lib/cart/CartContext";
@@ -50,16 +55,44 @@ export default function ArtworkDetailView({
 
   const { addItem } = useCart();
 
-  const price = variantPrice(artwork, variant);
-  const edition = variantEdition(artwork, variant);
-  const soldOut = variantSoldOut(artwork, variant);
-  const isSignedVariant = variant === "signed";
   const isOriginalVariant = variant === "original";
-  const isPurchasable = !isOriginalVariant && !soldOut && typeof price === "number";
-  const stockRemaining =
-    isSignedVariant && typeof artwork.signedStock === "number"
-      ? artwork.signedStock
+  const isSignedVariant = variant === "signed";
+  const variantHasSizes = hasSizes(artwork, variant);
+  const sizes = useMemo(
+    () => variantSizes(artwork, variant),
+    [artwork, variant],
+  );
+
+  const [selectedSizeKey, setSelectedSizeKey] = useState<string | undefined>(
+    () => defaultSizeKey(artwork, variant),
+  );
+  const selectedSize = findSize(artwork, variant, selectedSizeKey) as
+    | SanitySignedSize
+    | SanityUnsignedSize
+    | undefined;
+
+  const price = variantPrice(artwork, variant, selectedSizeKey);
+  const edition = variantEdition(artwork, variant);
+  const soldOut = variantSoldOut(artwork, variant, selectedSizeKey);
+
+  const isPurchasable =
+    !isOriginalVariant &&
+    !soldOut &&
+    typeof price === "number" &&
+    (!variantHasSizes || !!selectedSizeKey);
+
+  const signedSizeStock =
+    isSignedVariant && selectedSize && "stock" in selectedSize
+      ? (selectedSize as SanitySignedSize).stock
       : null;
+  const stockRemaining = isSignedVariant
+    ? variantHasSizes
+      ? signedSizeStock
+      : typeof artwork.signedStock === "number"
+        ? artwork.signedStock
+        : null
+    : null;
+
   const maxQty = isSignedVariant
     ? typeof stockRemaining === "number"
       ? Math.max(stockRemaining, 1)
@@ -83,6 +116,8 @@ export default function ArtworkDetailView({
         unitPrice: price as number,
         edition,
         imageUrl: imageUrl || undefined,
+        sizeKey: selectedSizeKey,
+        sizeLabel: selectedSize?.label,
       },
       effectiveQty,
     );
@@ -241,6 +276,42 @@ export default function ArtworkDetailView({
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {variantHasSizes && (
+                      <div>
+                        <p className="text-[11px] tracking-[0.2em] uppercase text-charcoal/50 mb-2">
+                          Size
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sizes.map((s) => {
+                            const outOfStock =
+                              isSignedVariant &&
+                              "stock" in s &&
+                              typeof (s as SanitySignedSize).stock ===
+                                "number" &&
+                              (s as SanitySignedSize).stock <= 0;
+                            const isSelected = s._key === selectedSizeKey;
+                            return (
+                              <button
+                                key={s._key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSizeKey(s._key);
+                                  setQty(1);
+                                }}
+                                disabled={outOfStock}
+                                className={`px-4 py-2 text-xs tracking-widest uppercase border transition-colors ${
+                                  isSelected
+                                    ? "border-charcoal bg-charcoal text-cream"
+                                    : "border-charcoal/20 text-charcoal/70 hover:border-charcoal/40 hover:text-charcoal"
+                                } ${outOfStock ? "opacity-40 cursor-not-allowed line-through" : ""}`}
+                              >
+                                {s.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {isPurchasable && (
                       <div className="flex items-center gap-3">
                         <span className="text-[11px] tracking-[0.2em] uppercase text-charcoal/50">

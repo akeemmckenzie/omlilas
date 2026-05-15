@@ -10,6 +10,20 @@ interface IncomingItem {
   artworkId: string;
   variant: "signed" | "unsigned";
   quantity: number;
+  sizeKey?: string;
+}
+
+interface SignedSizeRow {
+  _key: string;
+  label: string;
+  price: number;
+  stock: number;
+}
+
+interface UnsignedSizeRow {
+  _key: string;
+  label: string;
+  price: number;
 }
 
 interface SanityArtworkRow {
@@ -19,8 +33,10 @@ interface SanityArtworkRow {
   hasSignedPrint?: boolean;
   signedPrice?: number;
   signedStock?: number;
+  signedSizes?: SignedSizeRow[];
   hasUnsignedPrint?: boolean;
   unsignedPrice?: number;
+  unsignedSizes?: UnsignedSizeRow[];
   imageUrl?: string;
 }
 
@@ -77,7 +93,12 @@ export async function POST(req: NextRequest) {
     if (!Number.isFinite(qty) || qty < 1) {
       return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
     }
-    cleanItems.push({ artworkId: i.artworkId, variant: i.variant, quantity: qty });
+    cleanItems.push({
+      artworkId: i.artworkId,
+      variant: i.variant,
+      quantity: qty,
+      sizeKey: typeof i.sizeKey === "string" ? i.sizeKey : undefined,
+    });
   }
 
   const ids = Array.from(new Set(cleanItems.map((i) => i.artworkId)));
@@ -113,6 +134,8 @@ export async function POST(req: NextRequest) {
     quantity: number;
     title: string;
     unitPrice: number;
+    sizeKey?: string;
+    sizeLabel?: string;
   }> = [];
 
   for (const i of cleanItems) {
@@ -125,6 +148,18 @@ export async function POST(req: NextRequest) {
     }
 
     let unitPrice: number | undefined;
+    let sizeLabel: string | undefined;
+    const variantSizesList =
+      i.variant === "signed" ? row.signedSizes ?? [] : row.unsignedSizes ?? [];
+    const variantHasSizes = variantSizesList.length > 0;
+
+    if (variantHasSizes && !i.sizeKey) {
+      return NextResponse.json(
+        { error: `${row.title}: please choose a size` },
+        { status: 400 },
+      );
+    }
+
     if (i.variant === "signed") {
       if (!row.hasSignedPrint) {
         return NextResponse.json(
@@ -132,18 +167,44 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-      unitPrice = row.signedPrice;
-      const stock = typeof row.signedStock === "number" ? row.signedStock : 0;
-      if (stock < i.quantity) {
-        return NextResponse.json(
-          {
-            error:
-              stock === 0
-                ? `${row.title}: signed print is sold out`
-                : `${row.title}: only ${stock} signed print${stock === 1 ? "" : "s"} remaining`,
-          },
-          { status: 400 },
+      if (variantHasSizes) {
+        const size = (row.signedSizes ?? []).find(
+          (s) => s._key === i.sizeKey,
         );
+        if (!size) {
+          return NextResponse.json(
+            { error: `${row.title}: selected size is no longer available` },
+            { status: 400 },
+          );
+        }
+        unitPrice = size.price;
+        sizeLabel = size.label;
+        const stock = typeof size.stock === "number" ? size.stock : 0;
+        if (stock < i.quantity) {
+          return NextResponse.json(
+            {
+              error:
+                stock === 0
+                  ? `${row.title} (${size.label}): sold out`
+                  : `${row.title} (${size.label}): only ${stock} remaining`,
+            },
+            { status: 400 },
+          );
+        }
+      } else {
+        unitPrice = row.signedPrice;
+        const stock = typeof row.signedStock === "number" ? row.signedStock : 0;
+        if (stock < i.quantity) {
+          return NextResponse.json(
+            {
+              error:
+                stock === 0
+                  ? `${row.title}: signed print is sold out`
+                  : `${row.title}: only ${stock} signed print${stock === 1 ? "" : "s"} remaining`,
+            },
+            { status: 400 },
+          );
+        }
       }
     } else {
       if (!row.hasUnsignedPrint) {
@@ -152,7 +213,21 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-      unitPrice = row.unsignedPrice;
+      if (variantHasSizes) {
+        const size = (row.unsignedSizes ?? []).find(
+          (s) => s._key === i.sizeKey,
+        );
+        if (!size) {
+          return NextResponse.json(
+            { error: `${row.title}: selected size is no longer available` },
+            { status: 400 },
+          );
+        }
+        unitPrice = size.price;
+        sizeLabel = size.label;
+      } else {
+        unitPrice = row.unsignedPrice;
+      }
     }
 
     if (typeof unitPrice !== "number" || unitPrice <= 0) {
@@ -163,6 +238,7 @@ export async function POST(req: NextRequest) {
     }
 
     const variantLabel = i.variant === "signed" ? "Signed Print" : "Unsigned Print";
+    const nameSuffix = sizeLabel ? ` (${sizeLabel})` : "";
     lineItems.push({
       quantity: i.quantity,
       price_data: {
@@ -170,12 +246,14 @@ export async function POST(req: NextRequest) {
         unit_amount: Math.round(unitPrice * 100),
         tax_behavior: "exclusive",
         product_data: {
-          name: `${row.title} — ${variantLabel}`,
+          name: `${row.title} — ${variantLabel}${nameSuffix}`,
           images: row.imageUrl ? [row.imageUrl] : undefined,
           metadata: {
             artworkId: row._id,
             variant: i.variant,
             slug: row.slug,
+            ...(i.sizeKey ? { sizeKey: i.sizeKey } : {}),
+            ...(sizeLabel ? { sizeLabel } : {}),
           },
           tax_code: "txcd_99999999",
         },
@@ -188,6 +266,8 @@ export async function POST(req: NextRequest) {
       quantity: i.quantity,
       title: row.title,
       unitPrice,
+      sizeKey: i.sizeKey,
+      sizeLabel,
     });
   }
 

@@ -124,18 +124,23 @@ export default defineType({
                 ],
               },
             },
+            { name: "sizeLabel", title: "Size", type: "string" },
+            { name: "sizeKey", title: "Size Key", type: "string", readOnly: true },
             { name: "quantity", title: "Quantity", type: "number" },
             { name: "unitPrice", title: "Unit Price (USD)", type: "number" },
           ],
           preview: {
             select: {
               title: "title",
-              subtitle: "variant",
+              variant: "variant",
+              sizeLabel: "sizeLabel",
               quantity: "quantity",
             },
-            prepare: ({ title, subtitle, quantity }) => ({
+            prepare: ({ title, variant, sizeLabel, quantity }) => ({
               title: `${title} × ${quantity}`,
-              subtitle,
+              subtitle: sizeLabel
+                ? `${variant} · ${sizeLabel}`
+                : variant,
             }),
           },
         },

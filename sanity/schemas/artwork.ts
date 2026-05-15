@@ -135,6 +135,44 @@ export default defineType({
       description: 'Optional, e.g. "Open Edition" or "Edition of 100".',
       hidden: ({ document }) => !document?.hasUnsignedPrint,
     }),
+    defineField({
+      name: "unsignedSizes",
+      title: "Sizes",
+      type: "array",
+      group: "unsigned",
+      description:
+        "Optional. Add one or more sizes (e.g. 8×10, 11×14). When set, the customer picks a size at checkout and the unit price comes from the selected size. Leave empty to use the single Unsigned Price above.",
+      hidden: ({ document }) => !document?.hasUnsignedPrint,
+      of: [
+        {
+          type: "object",
+          name: "unsignedPrintSize",
+          title: "Size",
+          fields: [
+            {
+              name: "label",
+              title: "Label",
+              type: "string",
+              description: 'e.g. "8×10" or "11×14 inches".',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: "price",
+              title: "Price (USD)",
+              type: "number",
+              validation: (Rule) => Rule.required().min(0),
+            },
+          ],
+          preview: {
+            select: { title: "label", price: "price" },
+            prepare: ({ title, price }) => ({
+              title,
+              subtitle: typeof price === "number" ? `$${price}` : "—",
+            }),
+          },
+        },
+      ],
+    }),
 
     // Signed print variant
     defineField({
@@ -185,6 +223,54 @@ export default defineType({
       rows: 3,
       group: "signed",
       hidden: ({ document }) => !document?.hasSignedPrint,
+    }),
+    defineField({
+      name: "signedSizes",
+      title: "Sizes",
+      type: "array",
+      group: "signed",
+      description:
+        "Optional. Add one or more sizes — each with its own price and stock count. When set, the customer picks a size at checkout. Leave empty to use the single Signed Price and Stock fields above.",
+      hidden: ({ document }) => !document?.hasSignedPrint,
+      of: [
+        {
+          type: "object",
+          name: "signedPrintSize",
+          title: "Size",
+          fields: [
+            {
+              name: "label",
+              title: "Label",
+              type: "string",
+              description: 'e.g. "8×10" or "11×14 inches".',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: "price",
+              title: "Price (USD)",
+              type: "number",
+              validation: (Rule) => Rule.required().min(0),
+            },
+            {
+              name: "stock",
+              title: "Stock Remaining",
+              type: "number",
+              description:
+                "Signed prints are limited; how many of this size are still available.",
+              validation: (Rule) => Rule.required().min(0).integer(),
+            },
+          ],
+          preview: {
+            select: { title: "label", price: "price", stock: "stock" },
+            prepare: ({ title, price, stock }) => ({
+              title,
+              subtitle:
+                (typeof price === "number" ? `$${price}` : "—") +
+                (typeof stock === "number" ? ` · ${stock} in stock` : ""),
+            }),
+          },
+        },
+      ],
     }),
 
     // Images

@@ -25,6 +25,7 @@ export default function CartPageContent() {
             artworkId: i.artworkId,
             variant: i.variant,
             quantity: i.quantity,
+            sizeKey: i.sizeKey,
           })),
         }),
       });
@@ -58,7 +59,7 @@ export default function CartPageContent() {
       <ul className="divide-y divide-charcoal/10 border-y border-charcoal/10">
         {items.map((item) => (
           <li
-            key={`${item.artworkId}:${item.variant}`}
+            key={`${item.artworkId}:${item.variant}:${item.sizeKey ?? ""}`}
             className="py-6 flex gap-5"
           >
             <div className="relative w-24 h-28 bg-cream-light flex-shrink-0 overflow-hidden">
@@ -81,6 +82,7 @@ export default function CartPageContent() {
               </Link>
               <p className="text-[11px] tracking-[0.15em] uppercase text-charcoal/50 mt-1">
                 {VARIANT_LABELS[item.variant]}
+                {item.sizeLabel ? ` · ${item.sizeLabel}` : ""}
               </p>
               {item.edition && (
                 <p className="text-xs text-charcoal/50 mt-0.5">{item.edition}</p>
@@ -93,6 +95,7 @@ export default function CartPageContent() {
                         item.artworkId,
                         item.variant,
                         item.quantity - 1,
+                        item.sizeKey,
                       )
                     }
                     className="w-8 h-8 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors"
@@ -109,6 +112,7 @@ export default function CartPageContent() {
                         item.artworkId,
                         item.variant,
                         item.quantity + 1,
+                        item.sizeKey,
                       )
                     }
                     className="w-8 h-8 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors"
@@ -118,7 +122,9 @@ export default function CartPageContent() {
                   </button>
                 </div>
                 <button
-                  onClick={() => removeItem(item.artworkId, item.variant)}
+                  onClick={() =>
+                    removeItem(item.artworkId, item.variant, item.sizeKey)
+                  }
                   className="inline-flex items-center gap-1.5 text-xs text-charcoal/50 hover:text-charcoal transition-colors"
                 >
                   <Trash2 size={14} /> Remove
