@@ -141,7 +141,7 @@ export default defineType({
       type: "array",
       group: "unsigned",
       description:
-        "Optional. Add one or more sizes (e.g. 8×10, 11×14). When set, the customer picks a size at checkout and the unit price comes from the selected size. Leave empty to use the single Unsigned Price above.",
+        "Optional. Add one or more sizes (e.g. 8×10, 11×14). When set, the customer picks a size at checkout. Pricing always comes from the Unsigned Price above — sizes are just labels.",
       hidden: ({ document }) => !document?.hasUnsignedPrint,
       of: [
         {
@@ -156,19 +156,10 @@ export default defineType({
               description: 'e.g. "8×10" or "11×14 inches".',
               validation: (Rule) => Rule.required(),
             },
-            {
-              name: "price",
-              title: "Price (USD)",
-              type: "number",
-              validation: (Rule) => Rule.required().min(0),
-            },
           ],
           preview: {
-            select: { title: "label", price: "price" },
-            prepare: ({ title, price }) => ({
-              title,
-              subtitle: typeof price === "number" ? `$${price}` : "—",
-            }),
+            select: { title: "label" },
+            prepare: ({ title }) => ({ title }),
           },
         },
       ],
@@ -230,7 +221,7 @@ export default defineType({
       type: "array",
       group: "signed",
       description:
-        "Optional. Add one or more sizes — each with its own price and stock count. When set, the customer picks a size at checkout. Leave empty to use the single Signed Price and Stock fields above.",
+        "Optional. Add one or more sizes — each with its own stock count. When set, the customer picks a size at checkout, and the Signed Stock field above is ignored. Pricing always comes from Signed Price above.",
       hidden: ({ document }) => !document?.hasSignedPrint,
       of: [
         {
@@ -246,27 +237,20 @@ export default defineType({
               validation: (Rule) => Rule.required(),
             },
             {
-              name: "price",
-              title: "Price (USD)",
-              type: "number",
-              validation: (Rule) => Rule.required().min(0),
-            },
-            {
               name: "stock",
               title: "Stock Remaining",
               type: "number",
               description:
-                "Signed prints are limited; how many of this size are still available.",
+                "Signed prints are limited; how many of this size are still available. When 0, this size is shown as Sold Out.",
               validation: (Rule) => Rule.required().min(0).integer(),
             },
           ],
           preview: {
-            select: { title: "label", price: "price", stock: "stock" },
-            prepare: ({ title, price, stock }) => ({
+            select: { title: "label", stock: "stock" },
+            prepare: ({ title, stock }) => ({
               title,
               subtitle:
-                (typeof price === "number" ? `$${price}` : "—") +
-                (typeof stock === "number" ? ` · ${stock} in stock` : ""),
+                typeof stock === "number" ? `${stock} in stock` : undefined,
             }),
           },
         },

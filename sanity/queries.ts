@@ -16,14 +16,14 @@ const variantFieldsProjection = `
   hasUnsignedPrint,
   unsignedPrice,
   unsignedEdition,
-  unsignedSizes[] { _key, label, price },
+  unsignedSizes[] { _key, label },
   hasSignedPrint,
   signedPrice,
   signedEdition,
   signedStock,
   signedDescription,
   signedImages[] { image, alt, caption },
-  signedSizes[] { _key, label, price, stock }
+  signedSizes[] { _key, label, stock }
 `;
 
 const artworkListProjection = `
@@ -201,10 +201,10 @@ export const artworksByIdsQuery = groq`
     hasSignedPrint,
     signedPrice,
     signedStock,
-    signedSizes[] { _key, label, price, stock },
+    signedSizes[] { _key, label, stock },
     hasUnsignedPrint,
     unsignedPrice,
-    unsignedSizes[] { _key, label, price },
+    unsignedSizes[] { _key, label },
     "imageUrl": images[0].image.asset->url
   }
 `;

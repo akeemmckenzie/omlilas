@@ -71,7 +71,7 @@ export default function ArtworkDetailView({
     | SanityUnsignedSize
     | undefined;
 
-  const price = variantPrice(artwork, variant, selectedSizeKey);
+  const price = variantPrice(artwork, variant);
   const edition = variantEdition(artwork, variant);
   const soldOut = variantSoldOut(artwork, variant, selectedSizeKey);
 

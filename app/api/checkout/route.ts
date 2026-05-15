@@ -16,14 +16,12 @@ interface IncomingItem {
 interface SignedSizeRow {
   _key: string;
   label: string;
-  price: number;
   stock: number;
 }
 
 interface UnsignedSizeRow {
   _key: string;
   label: string;
-  price: number;
 }
 
 interface SanityArtworkRow {
@@ -167,6 +165,7 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
+      unitPrice = row.signedPrice;
       if (variantHasSizes) {
         const size = (row.signedSizes ?? []).find(
           (s) => s._key === i.sizeKey,
@@ -177,7 +176,6 @@ export async function POST(req: NextRequest) {
             { status: 400 },
           );
         }
-        unitPrice = size.price;
         sizeLabel = size.label;
         const stock = typeof size.stock === "number" ? size.stock : 0;
         if (stock < i.quantity) {
@@ -192,7 +190,6 @@ export async function POST(req: NextRequest) {
           );
         }
       } else {
-        unitPrice = row.signedPrice;
         const stock = typeof row.signedStock === "number" ? row.signedStock : 0;
         if (stock < i.quantity) {
           return NextResponse.json(
@@ -213,6 +210,7 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
+      unitPrice = row.unsignedPrice;
       if (variantHasSizes) {
         const size = (row.unsignedSizes ?? []).find(
           (s) => s._key === i.sizeKey,
@@ -223,10 +221,7 @@ export async function POST(req: NextRequest) {
             { status: 400 },
           );
         }
-        unitPrice = size.price;
         sizeLabel = size.label;
-      } else {
-        unitPrice = row.unsignedPrice;
       }
     }
 

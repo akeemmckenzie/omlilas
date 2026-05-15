@@ -86,15 +86,8 @@ export function findSize(
 export function variantPrice(
   artwork: SanityArtwork,
   variant: ArtworkVariant,
-  sizeKey?: string,
 ): number | undefined {
   if (variant === "original") return artwork.originalPrice;
-  const size = findSize(artwork, variant, sizeKey);
-  if (size) return size.price;
-  if (hasSizes(artwork, variant)) {
-    // Sizes defined but none selected — caller should resolve a size first.
-    return undefined;
-  }
   if (variant === "signed") return artwork.signedPrice;
   return artwork.unsignedPrice;
 }

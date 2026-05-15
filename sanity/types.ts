@@ -37,14 +37,12 @@ export type ArtworkVariant = "original" | "signed" | "unsigned";
 export interface SanitySignedSize {
   _key: string;
   label: string;
-  price: number;
   stock: number;
 }
 
 export interface SanityUnsignedSize {
   _key: string;
   label: string;
-  price: number;
 }
 
 export interface SanityArtwork {
