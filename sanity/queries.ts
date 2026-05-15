@@ -59,6 +59,8 @@ export const siteSettingsQuery = groq`
       text,
       link
     },
+    usShippingRate,
+    intlShippingRate,
     socialInstagram,
     socialYoutube,
     footerCopyright
@@ -186,4 +188,19 @@ export const blogPostBySlugQuery = groq`
 
 export const allBlogPostSlugsQuery = groq`
   *[_type == "blogPost" && defined(publishedAt) && publishedAt <= now()].slug.current
+`;
+
+// Server-side: lookup the current state of artworks for cart validation at checkout
+export const artworksByIdsQuery = groq`
+  *[_type == "artwork" && _id in $ids] {
+    _id,
+    title,
+    "slug": slug.current,
+    hasSignedPrint,
+    signedPrice,
+    signedStock,
+    hasUnsignedPrint,
+    unsignedPrice,
+    "imageUrl": images[0].image.asset->url
+  }
 `;

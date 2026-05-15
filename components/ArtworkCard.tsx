@@ -74,9 +74,7 @@ export default function ArtworkCard({
                     image={artwork.images[0]}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className={`object-cover ${
-                      soldOut ? "opacity-60 grayscale-[0.2]" : ""
-                    }`}
+                    className="object-cover"
                   />
                 ) : (
                   <SanityImage
@@ -84,9 +82,7 @@ export default function ArtworkCard({
                     width={600}
                     height={750}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className={`w-full h-auto ${
-                      soldOut ? "opacity-60 grayscale-[0.2]" : ""
-                    }`}
+                    className="w-full h-auto"
                   />
                 )
               ) : (
@@ -104,11 +100,20 @@ export default function ArtworkCard({
                   {artwork.title}
                 </p>
                 <p className="text-cream/80 text-xs mt-1">
-                  {soldOut
-                    ? soldLabel
-                    : typeof price === "number"
-                      ? formatPrice(price)
-                      : ""}
+                  {soldOut ? (
+                    typeof price === "number" ? (
+                      <>
+                        {formatPrice(price)}{" "}
+                        <em className="italic">{soldLabel}</em>
+                      </>
+                    ) : (
+                      <em className="italic">{soldLabel}</em>
+                    )
+                  ) : typeof price === "number" ? (
+                    formatPrice(price)
+                  ) : (
+                    ""
+                  )}
                 </p>
               </div>
             </div>
@@ -121,14 +126,23 @@ export default function ArtworkCard({
             </h3>
             <p
               className={`text-xs mt-1 tracking-wide ${
-                soldOut ? "uppercase text-accent" : "text-charcoal/60"
+                soldOut ? "text-charcoal/60" : "text-charcoal/60"
               }`}
             >
-              {soldOut
-                ? soldLabel
-                : typeof price === "number"
-                  ? formatPrice(price)
-                  : ""}
+              {soldOut ? (
+                typeof price === "number" ? (
+                  <>
+                    {formatPrice(price)}{" "}
+                    <em className="italic text-accent">{soldLabel}</em>
+                  </>
+                ) : (
+                  <em className="italic uppercase text-accent">{soldLabel}</em>
+                )
+              ) : typeof price === "number" ? (
+                formatPrice(price)
+              ) : (
+                ""
+              )}
             </p>
           </div>
         </div>

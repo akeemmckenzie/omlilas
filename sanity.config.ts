@@ -37,6 +37,9 @@ export default defineConfig({
             // Blog
             S.documentTypeListItem("blogPost").title("Blog Posts"),
             S.divider(),
+            // Orders (read-only, written by Stripe webhook)
+            S.documentTypeListItem("order").title("Orders"),
+            S.divider(),
             // Page Content
             S.documentTypeListItem("pageContent").title("Page Content"),
           ]),

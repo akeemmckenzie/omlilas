@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import type { ArtworkVariant, SanityArtwork } from "@/sanity/types";
 import { formatPrice } from "@/lib/sanity";
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/lib/artworkVariants";
 import SanityImage from "@/components/SanityImage";
 import ArtworkPlaceholder from "@/components/ArtworkPlaceholder";
+import { useCart } from "@/lib/cart/CartContext";
+import { urlFor } from "@/sanity/client";
 
 interface ArtworkDetailViewProps {
   artwork: SanityArtwork;
@@ -43,15 +45,50 @@ export default function ArtworkDetailView({
   const [selectedImage, setSelectedImage] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const [qty, setQty] = useState(1);
+  const [addedFlash, setAddedFlash] = useState(false);
+
+  const { addItem } = useCart();
 
   const price = variantPrice(artwork, variant);
   const edition = variantEdition(artwork, variant);
   const soldOut = variantSoldOut(artwork, variant);
   const isSignedVariant = variant === "signed";
+  const isOriginalVariant = variant === "original";
+  const isPurchasable = !isOriginalVariant && !soldOut && typeof price === "number";
   const stockRemaining =
     isSignedVariant && typeof artwork.signedStock === "number"
       ? artwork.signedStock
       : null;
+  const maxQty = isSignedVariant
+    ? typeof stockRemaining === "number"
+      ? Math.max(stockRemaining, 1)
+      : 1
+    : 99;
+  const effectiveQty = Math.min(Math.max(qty, 1), maxQty);
+
+  function handleAddToCart() {
+    if (!isPurchasable) return;
+    if (variant !== "signed" && variant !== "unsigned") return;
+    const firstImage = images[0]?.image;
+    const imageUrl = firstImage
+      ? urlFor(firstImage).width(400).url()
+      : undefined;
+    addItem(
+      {
+        artworkId: artwork._id,
+        slug: artwork.slug.current,
+        title: artwork.title,
+        variant,
+        unitPrice: price as number,
+        edition,
+        imageUrl: imageUrl || undefined,
+      },
+      effectiveQty,
+    );
+    setAddedFlash(true);
+    setTimeout(() => setAddedFlash(false), 1200);
+  }
 
   const openFullscreen = (index: number) => {
     setFullscreenIndex(index);
@@ -193,14 +230,65 @@ export default function ArtworkDetailView({
                   </p>
                 )}
 
-                <div className="flex flex-wrap gap-4">
-                  <Link
-                    href="/contact"
-                    className="px-10 py-3.5 bg-charcoal text-cream text-xs tracking-widest uppercase hover:bg-charcoal/85 hover:scale-[1.02] transition-all duration-300"
-                  >
-                    {soldOut ? "Inquire" : "Inquire"}
-                  </Link>
-                </div>
+                {isOriginalVariant ? (
+                  <div className="flex flex-wrap gap-4">
+                    <Link
+                      href="/contact"
+                      className="px-10 py-3.5 bg-charcoal text-cream text-xs tracking-widest uppercase hover:bg-charcoal/85 hover:scale-[1.02] transition-all duration-300"
+                    >
+                      Inquire
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {isPurchasable && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] tracking-[0.2em] uppercase text-charcoal/50">
+                          Qty
+                        </span>
+                        <div className="flex items-center border border-charcoal/15">
+                          <button
+                            type="button"
+                            onClick={() => setQty((q) => Math.max(1, q - 1))}
+                            disabled={effectiveQty <= 1}
+                            className="w-9 h-9 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors disabled:opacity-40"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-10 text-center text-sm">
+                            {effectiveQty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setQty((q) => Math.min(maxQty, q + 1))
+                            }
+                            disabled={effectiveQty >= maxQty}
+                            className="w-9 h-9 flex items-center justify-center text-charcoal/60 hover:text-charcoal hover:bg-charcoal/5 transition-colors disabled:opacity-40"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <button
+                        type="button"
+                        onClick={handleAddToCart}
+                        disabled={!isPurchasable}
+                        className="px-10 py-3.5 bg-charcoal text-cream text-xs tracking-widest uppercase hover:bg-charcoal/85 hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      >
+                        {soldOut
+                          ? "Sold Out"
+                          : addedFlash
+                            ? "Added ✓"
+                            : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Cross-link to other variants of the same artwork */}
                 {otherVariants.length > 0 && (

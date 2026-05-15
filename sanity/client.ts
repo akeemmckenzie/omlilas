@@ -18,10 +18,27 @@ export const client = isConfigured
 
 const builder = client ? imageUrlBuilder(client) : null;
 
+interface UrlBuilderLike {
+  auto: (mode?: string) => UrlBuilderLike;
+  quality: (q?: number) => UrlBuilderLike;
+  width: (w?: number) => UrlBuilderLike;
+  height: (h?: number) => UrlBuilderLike;
+  url: () => string;
+}
+
+function emptyBuilder(): UrlBuilderLike {
+  const stub: UrlBuilderLike = {
+    auto: () => stub,
+    quality: () => stub,
+    width: () => stub,
+    height: () => stub,
+    url: () => "",
+  };
+  return stub;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function urlFor(source: any) {
-  if (!builder) {
-    return { auto: () => ({ quality: () => ({ width: () => ({ url: () => "" }), url: () => "" }) }) };
-  }
-  return builder.image(source);
+export function urlFor(source: any): UrlBuilderLike {
+  if (!builder) return emptyBuilder();
+  return builder.image(source) as unknown as UrlBuilderLike;
 }

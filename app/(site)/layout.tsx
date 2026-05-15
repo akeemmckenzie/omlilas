@@ -1,5 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CartDrawer from "@/components/CartDrawer";
+import { CartProvider } from "@/lib/cart/CartContext";
 import { getSiteSettings } from "@/lib/sanity";
 
 export default async function SiteLayout({
@@ -15,10 +17,11 @@ export default async function SiteLayout({
   };
 
   return (
-    <>
+    <CartProvider>
       <Header socialLinks={socialLinks} />
       <main className="min-h-screen">{children}</main>
       <Footer settings={settings} />
-    </>
+      <CartDrawer />
+    </CartProvider>
   );
 }

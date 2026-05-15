@@ -149,6 +149,28 @@ export default defineType({
         },
       ],
     }),
+    // Shipping (used by Stripe Checkout for prints)
+    defineField({
+      name: "usShippingRate",
+      title: "US Shipping Rate (USD)",
+      type: "number",
+      group: "general",
+      description:
+        "Flat shipping rate for US orders. Used at Stripe Checkout for prints.",
+      initialValue: 15,
+      validation: (Rule) => Rule.min(0),
+    }),
+    defineField({
+      name: "intlShippingRate",
+      title: "International Shipping Rate (USD)",
+      type: "number",
+      group: "general",
+      description:
+        "Unused — international shipping is currently disabled. Re-enable in app/api/checkout/route.ts when ready.",
+      initialValue: 40,
+      hidden: true,
+      validation: (Rule) => Rule.min(0),
+    }),
     // Social & Footer
     defineField({
       name: "socialInstagram",

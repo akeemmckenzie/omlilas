@@ -83,9 +83,44 @@ export interface SanitySettings {
   quoteBannerBackground?: SanityImageSource;
   homeFeatureTilesHeading?: string;
   homeFeatureTiles?: SanityHomeTile[];
+  usShippingRate?: number;
+  intlShippingRate?: number;
   socialInstagram: string;
   socialYoutube: string;
   footerCopyright: string;
+}
+
+export interface SanityOrderItem {
+  artworkId?: string;
+  title: string;
+  variant: "signed" | "unsigned";
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface SanityOrder {
+  _id: string;
+  orderNumber?: string;
+  status: "paid" | "fulfilled" | "refunded" | "cancelled";
+  placedAt: string;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  currency: string;
+  customerEmail?: string;
+  customerName?: string;
+  shippingAddress?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  items: SanityOrderItem[];
+  stripeSessionId: string;
+  stripePaymentIntentId?: string;
 }
 
 export interface SanityPageContent {

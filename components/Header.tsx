@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Instagram, Menu, Youtube } from "lucide-react";
 import MobileMenu from "./MobileMenu";
+import CartButton from "./CartButton";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -75,6 +76,7 @@ export default function Header({ socialLinks }: HeaderProps) {
             >
               <Youtube size={18} />
             </a>
+            <CartButton />
             <button
               className="md:hidden text-charcoal/70 hover:text-charcoal transition-colors duration-200 ml-1"
               onClick={() => setMobileOpen(true)}
