@@ -25,7 +25,11 @@ Sanity Manage → API → Tokens → "Add API token".
 Add an endpoint at Stripe Dashboard → Developers → Webhooks:
 
 - **URL:** `https://YOUR_DOMAIN/api/stripe/webhook`
-- **Events:** `checkout.session.completed`
+- **Events:** `checkout.session.completed`,
+  `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`
+  (the async events matter only if delayed payment methods such as bank
+  debits are enabled; orders are recorded once payment actually clears).
 - Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
 
 Local dev: use the Stripe CLI to forward events to localhost.
@@ -68,10 +72,19 @@ US, Canada, UK, EU, AU, NZ, Japan. Add more codes there if needed
 2. `POST /api/checkout` re-validates price and signed-print stock against
    Sanity, then creates a Stripe Checkout Session and redirects.
 3. Stripe collects payment, address, shipping selection, tax.
-4. On success, `POST /api/stripe/webhook` receives `checkout.session.completed`:
-   - Decrements `signedStock` on each signed-print line item.
-   - Creates an `order` document in Sanity (visible under Studio → Orders).
+4. On success, `POST /api/stripe/webhook` receives `checkout.session.completed`
+   (or `checkout.session.async_payment_succeeded` for delayed payments):
+   - Reads the line items back from Stripe (each carries its artwork metadata).
+   - In one atomic Sanity transaction, creates the `order` document
+     (ID `order-<session id>`, visible under Studio → Orders) with the
+     shipping address, and decrements signed-print stock. Duplicate webhook
+     deliveries are ignored, so stock is never decremented twice.
+   - If anything fails (including a missing `SANITY_API_TOKEN`) the webhook
+     returns 500 and Stripe retries for up to 3 days — check
+     Stripe → Developers → Webhooks for failed deliveries.
    - Stripe sends a receipt email automatically.
+   - Stock is checked at checkout but not reserved; sessions expire after
+     35 minutes to keep the oversell window small.
 5. Customer lands on `/checkout/success`, cart clears client-side.
 
 ## 8. Originals

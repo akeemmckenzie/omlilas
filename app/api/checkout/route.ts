@@ -103,10 +103,12 @@ export async function POST(req: NextRequest) {
 
   let rows: SanityArtworkRow[] = [];
   let settings: SanitySettingsRow | null = null;
+  // Bypass the CDN so price and stock checks see the latest values.
+  const freshClient = client.withConfig({ useCdn: false });
   try {
     [rows, settings] = await Promise.all([
-      client.fetch<SanityArtworkRow[]>(artworksByIdsQuery, { ids }),
-      client.fetch<SanitySettingsRow | null>(siteSettingsQuery),
+      freshClient.fetch<SanityArtworkRow[]>(artworksByIdsQuery, { ids }),
+      freshClient.fetch<SanitySettingsRow | null>(siteSettingsQuery),
     ]);
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -126,15 +128,6 @@ export async function POST(req: NextRequest) {
 
   const byId = new Map(rows.map((r) => [r._id, r]));
   const lineItems: LineItem[] = [];
-  const metadataItems: Array<{
-    artworkId: string;
-    variant: "signed" | "unsigned";
-    quantity: number;
-    title: string;
-    unitPrice: number;
-    sizeKey?: string;
-    sizeLabel?: string;
-  }> = [];
 
   for (const i of cleanItems) {
     const row = byId.get(i.artworkId);
@@ -243,9 +236,12 @@ export async function POST(req: NextRequest) {
         product_data: {
           name: `${row.title} — ${variantLabel}${nameSuffix}`,
           images: row.imageUrl ? [row.imageUrl] : undefined,
+          // The webhook rebuilds the order from these per-line-item fields
+          // (session-level metadata is capped at 500 chars per value).
           metadata: {
             artworkId: row._id,
             variant: i.variant,
+            title: row.title.slice(0, 500),
             slug: row.slug,
             ...(i.sizeKey ? { sizeKey: i.sizeKey } : {}),
             ...(sizeLabel ? { sizeLabel } : {}),
@@ -253,16 +249,6 @@ export async function POST(req: NextRequest) {
           tax_code: "txcd_99999999",
         },
       },
-    });
-
-    metadataItems.push({
-      artworkId: row._id,
-      variant: i.variant,
-      quantity: i.quantity,
-      title: row.title,
-      unitPrice,
-      sizeKey: i.sizeKey,
-      sizeLabel,
     });
   }
 
@@ -297,8 +283,11 @@ export async function POST(req: NextRequest) {
       phone_number_collection: { enabled: false },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancel`,
+      // Stock isn't reserved, so keep the window between the stock check and
+      // payment short (Stripe allows 30 min–24 h; 35 min leaves room for clock skew).
+      expires_at: Math.floor(Date.now() / 1000) + 35 * 60,
       metadata: {
-        items: JSON.stringify(metadataItems),
+        source: "omlilas-cart",
       },
     });
 

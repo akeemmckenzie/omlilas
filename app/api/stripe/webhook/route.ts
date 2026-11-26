@@ -2,24 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { writeClient } from "@/sanity/writeClient";
+import {
+  buildOrderDoc,
+  isSessionPaid,
+  itemsFromLineItems,
+  orderDocId,
+  stockDecrements,
+} from "@/lib/stripeOrder";
 
 export const runtime = "nodejs";
 // Webhook signature verification needs the raw body; never parse upstream.
 export const dynamic = "force-dynamic";
-
-interface OrderItemMetadata {
-  artworkId: string;
-  variant: "signed" | "unsigned";
-  quantity: number;
-  title: string;
-  unitPrice: number;
-  sizeKey?: string;
-  sizeLabel?: string;
-}
-
-function shortOrderNumber(id: string): string {
-  return id.replace(/[^A-Za-z0-9]/g, "").slice(-8).toUpperCase();
-}
 
 export async function POST(req: NextRequest) {
   if (!stripe) {
@@ -51,9 +44,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      await handleCheckoutCompleted(session);
+    switch (event.type) {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (!isSessionPaid(session)) {
+          // Delayed payment method (e.g. bank debit): wait for
+          // checkout.session.async_payment_succeeded before fulfilling.
+          // eslint-disable-next-line no-console
+          console.info(
+            `[stripe webhook] session ${session.id} not paid yet (${session.payment_status}); waiting`,
+          );
+          break;
+        }
+        await fulfillSession(stripe, session);
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[stripe webhook] async payment failed for session ${session.id}; no order created`,
+        );
+        break;
+      }
     }
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -65,116 +79,77 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+async function fulfillSession(
+  stripeClient: Stripe,
+  session: Stripe.Checkout.Session,
+) {
   if (!writeClient) {
-    // eslint-disable-next-line no-console
-    console.error(
-      "[stripe webhook] Sanity write client unavailable — cannot record order or decrement stock",
+    // Throw (→ 500) so Stripe keeps retrying until the token is configured,
+    // instead of acknowledging the event and losing the order.
+    throw new Error(
+      "Sanity write client unavailable (SANITY_API_TOKEN missing) — cannot record order",
     );
-    return;
   }
 
-  const sessionId = session.id;
+  const docId = orderDocId(session.id);
 
-  // Idempotency: don't double-process the same session.
+  // Fast path: already recorded (deterministic ID, or a legacy random-ID
+  // order created before this handler used deterministic IDs).
   const existing = await writeClient.fetch<string | null>(
-    `*[_type == "order" && stripeSessionId == $sid][0]._id`,
-    { sid: sessionId },
+    `*[_type == "order" && (_id == $id || stripeSessionId == $sid)][0]._id`,
+    { id: docId, sid: session.id },
   );
   if (existing) return;
 
-  let items: OrderItemMetadata[] = [];
-  try {
-    items = JSON.parse(session.metadata?.items || "[]");
-  } catch {
-    items = [];
+  const lineItems = await stripeClient.checkout.sessions
+    .listLineItems(session.id, { limit: 100, expand: ["data.price.product"] })
+    .autoPagingToArray({ limit: 1000 });
+
+  const items = itemsFromLineItems(lineItems);
+  if (items.length === 0 && lineItems.length > 0) {
+    throw new Error(
+      `Session ${session.id}: line items carried no artwork metadata`,
+    );
   }
 
-  // Decrement signed stock for each signed-print line.
-  for (const it of items) {
-    if (it.variant !== "signed") continue;
-    try {
-      if (it.sizeKey) {
-        // Per-size stock: decrement `signedSizes[_key=="…"].stock` by qty.
-        await writeClient
-          .patch(it.artworkId)
-          .dec({ [`signedSizes[_key=="${it.sizeKey}"].stock`]: it.quantity })
-          .commit();
-      } else {
-        await writeClient
-          .patch(it.artworkId)
-          .dec({ signedStock: it.quantity })
-          .commit();
-      }
-    } catch (e) {
+  // Only patch artworks that still exist; a patch on a missing document
+  // would fail the whole transaction and block the order forever.
+  const decrements = stockDecrements(items);
+  const artworkIds = Array.from(new Set(decrements.map((d) => d.artworkId)));
+  const existingIds = artworkIds.length
+    ? await writeClient.fetch<string[]>(`*[_id in $ids]._id`, {
+        ids: artworkIds,
+      })
+    : [];
+  const existingSet = new Set(existingIds);
+
+  const tx = writeClient.transaction().create(buildOrderDoc(session, items));
+  for (const d of decrements) {
+    if (!existingSet.has(d.artworkId)) {
       // eslint-disable-next-line no-console
-      console.error(
-        `[stripe webhook] failed to decrement stock for ${it.artworkId}`,
-        e,
+      console.warn(
+        `[stripe webhook] artwork ${d.artworkId} no longer exists; skipping stock decrement`,
       );
+      continue;
     }
+    tx.patch(d.artworkId, { dec: { [d.path]: d.amount } });
   }
-
-  const shipping = session.shipping_cost?.amount_total ?? 0;
-  const tax = session.total_details?.amount_tax ?? 0;
-  const subtotal = (session.amount_subtotal ?? 0) - 0; // amount_subtotal excludes tax & shipping
-  const total = session.amount_total ?? 0;
-
-  const customerDetails = session.customer_details;
-  const shippingAddr =
-    (
-      session as unknown as {
-        shipping_details?: {
-          address?: Stripe.Address;
-          name?: string;
-        };
-      }
-    ).shipping_details?.address ?? customerDetails?.address ?? null;
-
-  const orderDoc = {
-    _type: "order",
-    orderNumber: shortOrderNumber(sessionId),
-    status: "paid",
-    placedAt: new Date(session.created * 1000).toISOString(),
-    subtotal: subtotal / 100,
-    shipping: shipping / 100,
-    tax: tax / 100,
-    total: total / 100,
-    currency: (session.currency ?? "usd").toLowerCase(),
-    customerEmail: customerDetails?.email ?? undefined,
-    customerName: customerDetails?.name ?? undefined,
-    shippingAddress: shippingAddr
-      ? {
-          line1: shippingAddr.line1 ?? undefined,
-          line2: shippingAddr.line2 ?? undefined,
-          city: shippingAddr.city ?? undefined,
-          state: shippingAddr.state ?? undefined,
-          postalCode: shippingAddr.postal_code ?? undefined,
-          country: shippingAddr.country ?? undefined,
-        }
-      : undefined,
-    items: items.map((it) => ({
-      _type: "orderItem",
-      _key: `${it.artworkId}-${it.variant}-${it.sizeKey ?? "default"}`,
-      artwork: { _type: "reference", _ref: it.artworkId },
-      title: it.title,
-      variant: it.variant,
-      sizeKey: it.sizeKey,
-      sizeLabel: it.sizeLabel,
-      quantity: it.quantity,
-      unitPrice: it.unitPrice,
-    })),
-    stripeSessionId: sessionId,
-    stripePaymentIntentId:
-      typeof session.payment_intent === "string"
-        ? session.payment_intent
-        : session.payment_intent?.id,
-  };
 
   try {
-    await writeClient.create(orderDoc);
+    // Atomic: the order and every stock decrement land together or not at
+    // all. A duplicate delivery fails on the existing order ID, so stock is
+    // never decremented twice.
+    await tx.commit();
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("[stripe webhook] failed to create order doc", e);
+    if (isConflict(e)) return; // processed concurrently by another delivery
+    throw e;
   }
+}
+
+function isConflict(e: unknown): boolean {
+  const err = e as { statusCode?: number; message?: string } | null;
+  return (
+    err?.statusCode === 409 ||
+    /already exists/i.test(err?.message ?? "")
+  );
 }

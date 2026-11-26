@@ -111,7 +111,7 @@ export default defineType({
           name: "orderItem",
           title: "Item",
           fields: [
-            { name: "artwork", title: "Artwork", type: "reference", to: [{ type: "artwork" }] },
+            { name: "artwork", title: "Artwork", type: "reference", to: [{ type: "artwork" }], weak: true },
             { name: "title", title: "Title", type: "string" },
             {
               name: "variant",
