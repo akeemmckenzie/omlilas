@@ -134,7 +134,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const clear = useCallback(() => setItems([]), []);
+  // Also wipe storage directly: a child's mount effect (e.g. the checkout
+  // success page) runs before this provider's hydrate effect, which would
+  // otherwise reload the old cart from storage and undo the clear.
+  const clear = useCallback(() => {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore privacy-mode errors
+    }
+    setItems([]);
+  }, []);
 
   const count = useMemo(
     () => items.reduce((sum, i) => sum + i.quantity, 0),
